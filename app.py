@@ -122,24 +122,23 @@ if st.session_state.get('switch_to_results', False):
     # Inject JavaScript to click on tab2 after page loads
     st.markdown("""
     <script>
-    function clickTab2() {
+    setTimeout(function() {
         try {
             // Try multiple selectors for Streamlit tabs
             var tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
-            if (tabs.length > 1) {
+            if (tabs && tabs.length > 1) {
                 tabs[1].click();
                 return;
             }
             // Alternative selector
             tabs = window.parent.document.querySelectorAll('[role="tablist"] button');
-            if (tabs.length > 1) {
+            if (tabs && tabs.length > 1) {
                 tabs[1].click();
             }
         } catch(e) {
             console.log('Tab switching error:', e);
         }
-    }
-    setTimeout(clickTab2, 200);
+    }, 500);
     </script>
     """, unsafe_allow_html=True)
 
@@ -333,10 +332,7 @@ with tab1:
                                     st.balloons()
                                     # Set flag to switch to results tab
                                     st.session_state.switch_to_results = True
-                                    # Use query params to switch tab
-                                    from streamlit.runtime.scriptrunner import RerunData, RerunException
-                                    from streamlit.source_util import get_pages
-                                    st.rerun()  # Refresh and switch to results tab
+                                    st.rerun()  # Refresh page and switch to results tab
                                 else:
                                     st.error("❌ Failed to generate personas. Please check the API response.")
                                     
