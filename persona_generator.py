@@ -7,7 +7,9 @@ Analyzes questionnaire CSV files using Gemini 2.5 Flash to generate comprehensiv
 import csv
 import json
 import os
+import re
 import sys
+import time
 from pathlib import Path
 from typing import Dict, List, Optional
 import google.generativeai as genai
@@ -154,31 +156,110 @@ class GeminiPersonaGenerator:
         model_name = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash')
         self.model = genai.GenerativeModel(model_name)
     
-    def generate_personas(self, questionnaire_data: Dict) -> List[Dict]:
-        """Generate comprehensive user personas using Gemini."""
+    def generate_personas(self, questionnaire_data: Dict, max_retries: int = 3) -> List[Dict]:
+        """Generate comprehensive user personas using Gemini with retry logic."""
         
         # Build prompt with all relevant information
         prompt = self._build_prompt(questionnaire_data)
         
-        # Generate response
-        response = self.model.generate_content(prompt)
+        # Retry logic for API calls
+        last_exception = None
+        for attempt in range(max_retries):
+            try:
+                # Generate response with timeout handling
+                generation_config = {
+                    'temperature': 0.7,
+                    'max_output_tokens': 8192,
+                }
+                
+                response = self.model.generate_content(
+                    prompt,
+                    generation_config=generation_config
+                )
+                
+                # Check if response has text
+                if not hasattr(response, 'text') or not response.text:
+                    raise ValueError("Empty response from API")
+                
+                # Parse JSON response
+                try:
+                    # Extract JSON from markdown if present
+                    text = response.text.strip()
+                    
+                    # Try to find JSON in markdown code blocks
+                    if '```json' in text:
+                        text = text.split('```json')[1].split('```')[0].strip()
+                    elif '```' in text:
+                        # Try to extract from any code block
+                        parts = text.split('```')
+                        for i, part in enumerate(parts):
+                            if '{' in part and '[' in part:
+                                text = part.strip()
+                                break
+                    
+                    # Try to find JSON object/array boundaries
+                    if not text.startswith('{') and not text.startswith('['):
+                        # Look for first { or [
+                        start_idx = min(
+                            text.find('{') if '{' in text else len(text),
+                            text.find('[') if '[' in text else len(text)
+                        )
+                        if start_idx < len(text):
+                            text = text[start_idx:]
+                    
+                    # Try to find the end of JSON (might be incomplete)
+                    if text.count('{') > text.count('}'):
+                        # Incomplete JSON - try to close it
+                        text += '}' * (text.count('{') - text.count('}'))
+                    if text.count('[') > text.count(']'):
+                        text += ']' * (text.count('[') - text.count(']'))
+                    
+                    personas_data = json.loads(text)
+                    
+                    # Handle both direct list and wrapped in object
+                    if isinstance(personas_data, list):
+                        return personas_data
+                    elif isinstance(personas_data, dict):
+                        return personas_data.get('personas', [])
+                    else:
+                        raise ValueError(f"Unexpected response format: {type(personas_data)}")
+                        
+                except json.JSONDecodeError as e:
+                    # Log the error for debugging
+                    print(f"JSON parsing error (attempt {attempt + 1}/{max_retries}): {e}")
+                    print(f"Response text (first 500 chars): {response.text[:500]}")
+                    
+                    # If this is the last attempt, try fallback parser
+                    if attempt == max_retries - 1:
+                        return self._parse_text_response(response.text)
+                    # Otherwise, wait and retry
+                    time.sleep(2 ** attempt)  # Exponential backoff
+                    continue
+                    
+            except Exception as e:
+                last_exception = e
+                error_msg = str(e).lower()
+                
+                # Check if it's a retryable error
+                retryable_errors = ['rate limit', 'quota', 'timeout', '503', '429', '500', '502']
+                is_retryable = any(err in error_msg for err in retryable_errors)
+                
+                print(f"API error (attempt {attempt + 1}/{max_retries}): {e}")
+                
+                if attempt < max_retries - 1 and is_retryable:
+                    # Wait before retrying (exponential backoff)
+                    wait_time = 2 ** attempt
+                    print(f"Retrying in {wait_time} seconds...")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    # Non-retryable error or last attempt
+                    raise Exception(f"Failed to generate personas after {attempt + 1} attempts: {str(e)}")
         
-        # Parse JSON response
-        try:
-            # Extract JSON from markdown if present
-            text = response.text
-            if '```json' in text:
-                text = text.split('```json')[1].split('```')[0]
-            elif '```' in text:
-                text = text.split('```')[1].split('```')[0]
-            
-            personas_data = json.loads(text.strip())
-            return personas_data.get('personas', [])
-        except json.JSONDecodeError as e:
-            print(f"Error parsing JSON response: {e}")
-            print(f"Response text: {response.text}")
-            # Fallback: try to extract personas manually
-            return self._parse_text_response(response.text)
+        # If we get here, all retries failed
+        if last_exception:
+            raise Exception(f"Failed to generate personas: {str(last_exception)}")
+        raise Exception("Failed to generate personas: Unknown error")
     
     def _build_prompt(self, data: Dict) -> str:
         """Build comprehensive prompt for Gemini."""
@@ -278,10 +359,33 @@ Identify at least 2-3 distinct personas based on the questionnaire data. Be thor
         return prompt
     
     def _parse_text_response(self, text: str) -> List[Dict]:
-        """Fallback parser for text responses."""
-        # This is a simplified fallback - ideally we want JSON
+        """Fallback parser for text responses when JSON parsing fails."""
         print("Warning: Using fallback text parser. JSON format preferred.")
-        return []
+        
+        # Try to extract JSON-like structures from text
+        try:
+            # Try to find JSON objects
+            json_pattern = r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}'
+            matches = re.findall(json_pattern, text, re.DOTALL)
+            
+            if matches:
+                # Try to parse the largest match (likely the full response)
+                largest_match = max(matches, key=len)
+                try:
+                    data = json.loads(largest_match)
+                    if isinstance(data, dict) and 'personas' in data:
+                        return data['personas']
+                    elif isinstance(data, list):
+                        return data
+                except json.JSONDecodeError:
+                    pass
+            
+            # If no valid JSON found, return empty list
+            print(f"Could not extract valid JSON from response. Response length: {len(text)}")
+            return []
+        except Exception as e:
+            print(f"Error in fallback parser: {e}")
+            return []
 
 
 class PersonaCSVExporter:

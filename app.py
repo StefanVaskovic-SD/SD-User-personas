@@ -180,7 +180,7 @@ with tab1:
                 
                 # Show data preview
                 with st.expander("🔍 Data Preview", expanded=False):
-                    st.dataframe(df.head(10), use_container_width=True)
+                    st.dataframe(df.head(10), width='stretch')
                 
                 st.markdown("---")
                 
@@ -257,13 +257,13 @@ with tab1:
             st.markdown("### Generate Personas")
             
             if api_key:
-                if st.button("🚀 Generate Personas", type="primary", use_container_width=True):
+                if st.button("🚀 Generate Personas", type="primary", use_container_width=False):
                     with st.spinner("🤖 Generating personas using Gemini AI... This may take 30-60 seconds..."):
                             try:
                                 generator = GeminiPersonaGenerator(api_key=api_key)
                                 personas = generator.generate_personas(questionnaire_data)
                                 
-                                if personas:
+                                if personas and len(personas) > 0:
                                     st.session_state.personas_generated = True
                                     st.session_state.personas_data = personas
                                     st.session_state.client_info = questionnaire_data['client_info']
@@ -334,11 +334,22 @@ with tab1:
                                     st.session_state.switch_to_results = True
                                     st.rerun()  # Refresh page and switch to results tab
                                 else:
-                                    st.error("❌ Failed to generate personas. Please check the API response.")
+                                    st.error("❌ Failed to generate personas. The API returned an empty response. Please try again or check your API quota.")
+                                    st.info("💡 **Tips:**\n- Check if your Gemini API key is valid\n- Verify you have API quota available\n- Try again in a few moments if you hit rate limits")
                                     
                             except Exception as e:
-                                st.error(f"❌ Error generating personas: {str(e)}")
+                                error_msg = str(e).lower()
+                                if 'rate limit' in error_msg or 'quota' in error_msg:
+                                    st.error("❌ **Rate Limit Exceeded**: The API rate limit has been reached. Please wait a few minutes and try again.")
+                                elif 'timeout' in error_msg:
+                                    st.error("❌ **Timeout Error**: The request took too long. Please try again with a smaller dataset or check your internet connection.")
+                                elif 'api key' in error_msg or 'authentication' in error_msg:
+                                    st.error("❌ **Authentication Error**: Please check your Gemini API key in the environment variables.")
+                                else:
+                                    st.error(f"❌ **Error generating personas**: {str(e)}")
+                                
                                 st.exception(e)
+                                st.info("💡 If this error persists, please check the logs for more details.")
             else:
                 st.warning("⚠️ Please provide Gemini API key in the sidebar to generate personas.")
 
@@ -428,14 +439,14 @@ with tab3:
             file_name=filename,
             mime="text/csv",
             type="primary",
-            use_container_width=True
+            use_container_width=False
         )
         
         st.markdown("---")
         
         # Show preview as table
         df = pd.read_csv(io.StringIO(st.session_state.csv_data))
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df, width='stretch')
     else:
         st.info("👆 Generate personas first to download the CSV file.")
 
