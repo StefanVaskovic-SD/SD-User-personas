@@ -102,10 +102,8 @@ with st.sidebar:
        - Then continue from step 4.
     2. **If you DO NOT have a questionnaire CSV:**
        - Take the questions and answers from your existing questionnaire (Word, PDF, email, notes, etc.).
-       - Paste that content into an AI chat, upload your questionnaire CSV as an example, and use this prompt:
-         ```
-         Could you return this content in a CSV file, where questions are in column A and answers are in column B? Please also add a header row with the column names: "question" and "answer". Use uploaded csv as an example.
-         ```
+       - Paste that content into an AI chat, upload your questionnaire CSV as an example, and use this prompt (you can copy–paste it):
+         > Could you return this content in a CSV file, where questions are in column A and answers are in column B? Please also add a header row with the column names: "question" and "answer". Use uploaded CSV as an example.
        - Download and save the CSV file that the AI returns.
     3. **Upload** the CSV file here in the app.
     4. **Click** on "Generate Personas".
