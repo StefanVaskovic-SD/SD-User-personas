@@ -97,14 +97,19 @@ st.markdown('<div class="sub-header">Upload questionnaire CSV and generate detai
 with st.sidebar:
     st.markdown("### 📖 Instructions")
     st.markdown("""
-    1. **Upload** your questionnaire CSV file
-    2. **Review** the parsed data
-    3. **Generate** personas using AI
-    4. **Download** the results as CSV
-    
-    Make sure your CSV has:
-    - Client metadata (Client Name, Product Name)
-    - Questions and answers with Section, Question, Answer columns
+    1. **If you ALREADY have a questionnaire CSV:**
+       - Upload your questionnaire CSV file.
+       - Then continue from step 4.
+    2. **If you DO NOT have a questionnaire CSV:**
+       - Take the questions and answers from your existing questionnaire (Word, PDF, email, notes, etc.).
+       - Paste that content into an AI chat, upload your questionnaire CSV as an example, and use this prompt:
+         ```
+         Could you return this content in a CSV file, where questions are in column A and answers are in column B? Please also add a header row with the column names: "question" and "answer". Use uploaded csv as an example.
+         ```
+       - Download and save the CSV file that the AI returns.
+    3. **Upload** the CSV file here in the app.
+    4. **Click** on "Generate Personas".
+    5. **Download** the generated personas CSV.
     """)
 
 # Load API key from .env file
