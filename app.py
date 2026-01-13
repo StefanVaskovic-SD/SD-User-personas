@@ -230,12 +230,6 @@ with tab1:
                 st.success(f"✓ CSV file loaded! Total rows: {len(df)}")
                 st.info(f"📄 File: {uploaded_file.name} ({uploaded_file.size} bytes)")
                 
-                # Show data preview
-                with st.expander("🔍 Data Preview", expanded=False):
-                    st.dataframe(df.head(10), width='stretch')
-                
-                st.markdown("---")
-                
                 # Automatically detect columns (case-insensitive)
                 question_col = None
                 answer_col = None
@@ -264,18 +258,6 @@ with tab1:
                             
                             st.session_state.client_info = questionnaire_data['client_info']
                             
-                            st.success(f"✓ Successfully parsed!")
-                            
-                            # Display client info
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                st.info(f"**Client:** {questionnaire_data['client_info'].get('Client Name', 'N/A')}")
-                            with col2:
-                                st.info(f"**Product:** {questionnaire_data['client_info'].get('Product Name', 'N/A')}")
-                            
-                            st.info(f"📝 Found {len(questionnaire_data['all_qa'])} Q&A pairs")
-                            st.info(f"👥 Found {len(questionnaire_data['persona_qa'])} persona-related Q&A pairs")
-                            
                             # Store parsed data in session state for later use
                             st.session_state.questionnaire_data = questionnaire_data
                             
@@ -294,10 +276,10 @@ with tab1:
             questionnaire_data = st.session_state.questionnaire_data
             
             st.markdown("---")
-            st.markdown("### Generate Personas")
             
             if api_key:
-                if st.button("🚀 Generate Personas", type="primary", use_container_width=False):
+                button_text = "🔄 Regenerate Personas" if st.session_state.personas_generated else "🚀 Generate Personas"
+                if st.button(button_text, type="primary", use_container_width=False):
                     with st.spinner("🤖 Generating personas using Gemini AI... This may take 30-60 seconds..."):
                             try:
                                 generator = GeminiPersonaGenerator(api_key=api_key)
