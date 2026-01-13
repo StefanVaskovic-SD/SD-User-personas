@@ -91,23 +91,21 @@ if 'switch_to_results' not in st.session_state:
 
 # Header
 st.markdown('<div class="main-header">👤 User Persona Generator</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">Upload questionnaire CSV and generate detailed user personas using Gemini AI</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-header">Generate user personas from the Discovery questionnaire.</div>', unsafe_allow_html=True)
 
 # Sidebar
 with st.sidebar:
-    st.markdown("### 📖 Instructions")
+    st.markdown("### How to use this tool")
     st.markdown("""
-    1. **If you ALREADY have a questionnaire CSV:**
-       - Upload your questionnaire CSV file.
-       - Then continue from step 4.
-    2. **If you DO NOT have a questionnaire CSV:**
-       - Take the questions and answers from your existing questionnaire (Word, PDF, email, notes, etc.).
-       - Paste that content into an AI chat, upload your questionnaire CSV as an example, and use this prompt (you can copy–paste it):
-         > Could you return this content in a CSV file, where questions are in column A and answers are in column B? Please also add a header row with the column names: "question" and "answer". Use uploaded CSV as an example.
-       - Download and save the CSV file that the AI returns.
-    3. **Upload** the CSV file here in the app.
-    4. **Click** on "Generate Personas".
-    5. **Download** the generated personas CSV.
+    **Step 1: prepare .csv file**
+       - If you haven't used other Studio Direction tools already: take the questions and answers from the questionnaire you have(Word, PDF, email, notes, etc.) and paste that content into an AI chat, upload your questionnaire CSV as an example, and use this prompt:
+        > Could you return this content in a CSV file, where questions are in column A and answers are in column B? Please also add a header row with the column names: "question" and "answer". Use uploaded CSV as an example.
+       - If you already have output other Studio Direction tools skip this step.
+    **Step 2: import data**
+       - Upload the CSV file here in the app.
+    **Step 3: download** 
+       - Click on "Generate Personas".
+       - Download the generated personas CSV.
     """)
 
 # Load API key from .env file
@@ -146,12 +144,11 @@ if st.session_state.get('switch_to_results', False):
     """, unsafe_allow_html=True)
 
 with tab1:
-    st.header("Upload Questionnaire CSV")
+    st.header("Import data")
     
     uploaded_file = st.file_uploader(
-        "Choose a CSV file",
-        type=['csv'],
-        help="Upload your questionnaire CSV file"
+        "See instructions on the left and prepare a .csv file (max limit: 200MB).",
+        type=['csv']
     )
     
     if uploaded_file is not None:
@@ -453,12 +450,5 @@ with tab3:
     else:
         st.info("👆 Generate personas first to download the CSV file.")
 
-# Footer
-st.markdown("---")
-st.markdown(
-    "<div style='text-align: center; color: #666; padding: 2rem;'>"
-    "User Persona Generator | Powered by Gemini AI"
-    "</div>",
-    unsafe_allow_html=True
-)
+
 
