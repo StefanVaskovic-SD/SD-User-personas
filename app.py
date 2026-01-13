@@ -68,6 +68,23 @@ st.markdown("""
         padding: 0.5rem 1rem;
         border-radius: 0.5rem;
     }
+    .prompt-box {
+        background-color: #f5f5f5;
+        border: 1px solid #ddd;
+        border-left: 4px solid #1f77b4;
+        border-radius: 4px;
+        padding: 1rem;
+        margin: 0.5rem 0;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        white-space: pre-wrap;
+        position: relative;
+    }
+    .step-separator {
+        margin: 1.5rem 0;
+        border-top: 1px solid #e0e0e0;
+        height: 1px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -96,16 +113,29 @@ st.markdown('<div class="sub-header">Generate user personas from the Discovery q
 # Sidebar
 with st.sidebar:
     st.markdown("### How to use this tool")
+    
+    st.markdown("**Step 1: prepare .csv file**")
     st.markdown("""
-    **Step 1: prepare .csv file**
-       - If you haven't used other Studio Direction tools already: take the questions and answers from the questionnaire you have(Word, PDF, email, notes, etc.) and paste that content into an AI chat, upload your questionnaire CSV as an example, and use this prompt:
-        > Could you return this content in a CSV file, where questions are in column A and answers are in column B? Please also add a header row with the column names: "question" and "answer". Use uploaded CSV as an example.
-       - If you already have output other Studio Direction tools skip this step.
-    **Step 2: import data**
-       - Upload the CSV file here in the app.
-    **Step 3: download** 
-       - Click on "Generate Personas".
-       - Download the generated personas CSV.
+    - If you haven't used other Studio Direction tools already: take the questions and answers from the questionnaire you have (Word, PDF, email, notes, etc.) and paste that content into an AI chat, upload your questionnaire CSV as an example, and use this prompt:
+    """)
+    st.markdown("""
+    <div class="prompt-box">Could you return this content in a CSV file, where questions are in column A and answers are in column B? Please also add a header row with the column names: "question" and "answer". Use uploaded CSV as an example.</div>
+    """, unsafe_allow_html=True)
+    st.markdown("""
+    - If you already have output from other Studio Direction tools skip this step.
+    """)
+    
+    st.markdown('<div class="step-separator"></div>', unsafe_allow_html=True)
+    st.markdown("**Step 2: import data**")
+    st.markdown("""
+    - Upload the CSV file here in the app.
+    """)
+    
+    st.markdown('<div class="step-separator"></div>', unsafe_allow_html=True)
+    st.markdown("**Step 3: download**")
+    st.markdown("""
+    - Click on "Generate Personas".
+    - Download the generated personas CSV.
     """)
 
 # Load API key from .env file
@@ -160,20 +190,50 @@ with tab1:
         # Find where CSV headers start (skip metadata rows)
         try:
             header_row_index = None
+            df = None
+            
             with open(file_path, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
                 for i, line in enumerate(lines):
-                    if 'Section' in line and 'Question' in line and 'Answer' in line:
-                        header_row_index = i
-                        break
+                    line_upper = line.upper()
+                    # Check for both formats:
+                    # 1. Full format: Section, Question, Answer
+                    # 2. Simple format: Question, Answer (or question, answer)
+                    has_question = 'QUESTION' in line_upper
+                    has_answer = 'ANSWER' in line_upper
+                    
+                    # Must have both question and answer columns
+                    if has_question and has_answer and ',' in line:
+                        # Validate that these are column headers (not part of other words)
+                        parts = [p.strip().upper() for p in line.split(',')]
+                        question_col_found = any(p == 'QUESTION' for p in parts)
+                        answer_col_found = any(p == 'ANSWER' for p in parts)
+                        
+                        if question_col_found and answer_col_found:
+                            header_row_index = i
+                            break
             
-            if header_row_index is None:
-                st.error("❌ Could not find CSV header row with Section/Question/Answer columns")
+            # Read CSV file
+            if header_row_index is not None:
+                # Read CSV starting from header row (if header_row_index > 0, skip rows before it)
+                if header_row_index > 0:
+                    df = pd.read_csv(file_path, encoding='utf-8', skiprows=range(header_row_index))
+                else:
+                    df = pd.read_csv(file_path, encoding='utf-8')
             else:
-                # Read CSV starting from header row (header_row_index is the row number, skip rows before it)
-                df = pd.read_csv(file_path, encoding='utf-8', skiprows=range(header_row_index))
+                # Try reading from the start (maybe it's a simple CSV without metadata rows)
+                df = pd.read_csv(file_path, encoding='utf-8')
+            
+            # Validate that CSV has question/answer columns (case-insensitive)
+            col_names_lower = [col.lower().strip() for col in df.columns]
+            if 'question' in col_names_lower and 'answer' in col_names_lower:
                 st.session_state.csv_df = df
                 st.session_state.csv_columns = list(df.columns)
+            else:
+                st.error("❌ Could not find CSV header row with Question/Answer columns. Please ensure your CSV has 'question' and 'answer' columns (or 'Question' and 'Answer').")
+                df = None
+            
+            if df is not None:
                 
                 st.success(f"✓ CSV file loaded! Total rows: {len(df)}")
                 st.info(f"📄 File: {uploaded_file.name} ({uploaded_file.size} bytes)")
@@ -190,19 +250,31 @@ with tab1:
                 col1, col2 = st.columns(2)
                 
                 with col1:
+                    # Find question column (case-insensitive)
+                    question_idx = 0
+                    for i, col in enumerate(st.session_state.csv_columns):
+                        if col.lower().strip() == 'question':
+                            question_idx = i
+                            break
                     question_col = st.selectbox(
                         "Column with questions:",
                         options=st.session_state.csv_columns,
-                        index=st.session_state.csv_columns.index('Question') if 'Question' in st.session_state.csv_columns else 0,
-                        help="Column containing questions (e.g., 'Question')"
+                        index=question_idx,
+                        help="Column containing questions (e.g., 'Question' or 'question')"
                     )
                 
                 with col2:
+                    # Find answer column (case-insensitive)
+                    answer_idx = 1 if len(st.session_state.csv_columns) > 1 else 0
+                    for i, col in enumerate(st.session_state.csv_columns):
+                        if col.lower().strip() == 'answer':
+                            answer_idx = i
+                            break
                     answer_col = st.selectbox(
                         "Column with answers:",
                         options=st.session_state.csv_columns,
-                        index=st.session_state.csv_columns.index('Answer') if 'Answer' in st.session_state.csv_columns else 1 if len(st.session_state.csv_columns) > 1 else 0,
-                        help="Column containing answers (e.g., 'Answer')"
+                        index=answer_idx,
+                        help="Column containing answers (e.g., 'Answer' or 'answer')"
                     )
                 
                 st.markdown("---")
@@ -211,8 +283,12 @@ with tab1:
                 if question_col and answer_col:
                     with st.spinner("📋 Parsing questionnaire..."):
                         try:
-                            # Find section column if exists
-                            section_col = 'Section' if 'Section' in st.session_state.csv_columns else ''
+                            # Find section column if exists (case-insensitive)
+                            section_col = ''
+                            for col in st.session_state.csv_columns:
+                                if col.lower().strip() == 'section':
+                                    section_col = col
+                                    break
                             
                             parser = QuestionnaireParser(
                                 file_path,
