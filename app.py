@@ -69,8 +69,7 @@ st.markdown("""
         border-radius: 0.5rem;
     }
     .prompt-box {
-        background-color: #f5f5f5;
-        border: 1px solid #ddd;
+        border: 1px solid rgba(255, 255, 255, 0.2);
         border-left: 4px solid #1f77b4;
         border-radius: 4px;
         padding: 1rem;
@@ -79,11 +78,6 @@ st.markdown("""
         font-size: 0.9rem;
         white-space: pre-wrap;
         position: relative;
-    }
-    .step-separator {
-        margin: 1.5rem 0;
-        border-top: 1px solid #e0e0e0;
-        height: 1px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -125,13 +119,11 @@ with st.sidebar:
     - If you already have output from other Studio Direction tools skip this step.
     """)
     
-    st.markdown('<div class="step-separator"></div>', unsafe_allow_html=True)
     st.markdown("**Step 2: import data**")
     st.markdown("""
     - Upload the CSV file here in the app.
     """)
     
-    st.markdown('<div class="step-separator"></div>', unsafe_allow_html=True)
     st.markdown("**Step 3: download**")
     st.markdown("""
     - Click on "Generate Personas".
@@ -244,52 +236,24 @@ with tab1:
                 
                 st.markdown("---")
                 
-                # Column selection
-                st.markdown("### Select Columns")
+                # Automatically detect columns (case-insensitive)
+                question_col = None
+                answer_col = None
+                section_col = ''
                 
-                col1, col2 = st.columns(2)
+                for col in st.session_state.csv_columns:
+                    col_lower = col.lower().strip()
+                    if col_lower == 'question':
+                        question_col = col
+                    elif col_lower == 'answer':
+                        answer_col = col
+                    elif col_lower == 'section':
+                        section_col = col
                 
-                with col1:
-                    # Find question column (case-insensitive)
-                    question_idx = 0
-                    for i, col in enumerate(st.session_state.csv_columns):
-                        if col.lower().strip() == 'question':
-                            question_idx = i
-                            break
-                    question_col = st.selectbox(
-                        "Column with questions:",
-                        options=st.session_state.csv_columns,
-                        index=question_idx,
-                        help="Column containing questions (e.g., 'Question' or 'question')"
-                    )
-                
-                with col2:
-                    # Find answer column (case-insensitive)
-                    answer_idx = 1 if len(st.session_state.csv_columns) > 1 else 0
-                    for i, col in enumerate(st.session_state.csv_columns):
-                        if col.lower().strip() == 'answer':
-                            answer_idx = i
-                            break
-                    answer_col = st.selectbox(
-                        "Column with answers:",
-                        options=st.session_state.csv_columns,
-                        index=answer_idx,
-                        help="Column containing answers (e.g., 'Answer' or 'answer')"
-                    )
-                
-                st.markdown("---")
-                
-                # Parse questionnaire with selected columns
+                # Parse questionnaire with auto-detected columns
                 if question_col and answer_col:
                     with st.spinner("📋 Parsing questionnaire..."):
                         try:
-                            # Find section column if exists (case-insensitive)
-                            section_col = ''
-                            for col in st.session_state.csv_columns:
-                                if col.lower().strip() == 'section':
-                                    section_col = col
-                                    break
-                            
                             parser = QuestionnaireParser(
                                 file_path,
                                 section_col=section_col,
@@ -319,7 +283,7 @@ with tab1:
                             st.error(f"❌ Error parsing questionnaire: {str(e)}")
                             st.exception(e)
                 else:
-                    st.warning("⚠️ Please select columns for questions and answers")
+                    st.error("❌ Could not find 'question' and 'answer' columns in CSV file. Please ensure your CSV has these columns.")
         
         except Exception as e:
             st.error(f"❌ Error reading CSV file: {str(e)}")
