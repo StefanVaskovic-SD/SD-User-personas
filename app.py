@@ -8,11 +8,25 @@ import streamlit as st
 import pandas as pd
 import io
 import sys
+import base64
 from pathlib import Path
 from datetime import datetime
 
 # Add current directory to path to import persona_generator
 sys.path.insert(0, str(Path(__file__).parent))
+
+# Load fonts as base64
+def load_font_base64(font_path):
+    """Load font file and return as base64 string"""
+    font_file = Path(__file__).parent / font_path
+    if font_file.exists():
+        with open(font_file, 'rb') as f:
+            return base64.b64encode(f.read()).decode('utf-8')
+    return None
+
+# Load fonts
+font_regular_b64 = load_font_base64('fonts/SuisseIntl-Regular.woff2')
+font_bold_b64 = load_font_base64('fonts/SuisseIntl-Bold.woff2')
 
 from persona_generator import (
     QuestionnaireParser,
@@ -29,48 +43,84 @@ st.set_page_config(
 )
 
 # Custom CSS
-st.markdown("""
+font_face_css = ""
+if font_regular_b64:
+    font_face_css += f"""
+    @font-face {{
+        font-family: 'Suisse Intl';
+        src: url(data:font/woff2;base64,{font_regular_b64}) format('woff2');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+    }}
+    """
+if font_bold_b64:
+    font_face_css += f"""
+    @font-face {{
+        font-family: 'Suisse Intl';
+        src: url(data:font/woff2;base64,{font_bold_b64}) format('woff2');
+        font-weight: bold;
+        font-style: normal;
+        font-display: swap;
+    }}
+    """
+
+st.markdown(f"""
 <style>
+    /* Font faces */
+    {font_face_css}
+    
+    /* Main background - dark theme */
+    .stApp {
+        background-color: #080808;
+        color: #f5f5f7;
+        font-family: 'Suisse Intl', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    
+    /* Main content area */
+    .main .block-container {
+        background-color: #080808;
+        color: #f5f5f7;
+    }
+    
+    /* Headers */
     .main-header {
+        font-family: 'Suisse Intl', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         font-size: 3rem;
         font-weight: bold;
-        color: #1f77b4;
+        color: #f5f5f7;
         text-align: center;
         margin-bottom: 1rem;
     }
     .sub-header {
+        font-family: 'Suisse Intl', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         font-size: 1.2rem;
-        color: #666;
+        font-weight: normal;
+        color: #f5f5f7;
+        opacity: 0.7;
         text-align: center;
         margin-bottom: 2rem;
     }
-    .success-box {
-        padding: 1rem;
-        border-radius: 0.5rem;
-        background-color: #d4edda;
-        border: 1px solid #c3e6cb;
-        color: #155724;
-        margin: 1rem 0;
-    }
-    .info-box {
-        padding: 1rem;
-        border-radius: 0.5rem;
-        background-color: #d1ecf1;
-        border: 1px solid #bee5eb;
-        color: #0c5460;
-        margin: 1rem 0;
-    }
+    
+    /* Buttons - white */
     .stButton>button {
+        font-family: 'Suisse Intl', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         width: 100%;
-        background-color: #1f77b4;
-        color: white;
+        background-color: #f5f5f7;
+        color: #080808;
         font-weight: bold;
         padding: 0.5rem 1rem;
         border-radius: 0.5rem;
+        border: none;
     }
+    .stButton>button:hover {
+        background-color: #ffffff;
+    }
+    
+    /* Prompt box */
     .prompt-box {
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-left: 4px solid #1f77b4;
+        border: 1px solid rgba(245, 245, 247, 0.2);
+        border-left: 4px solid #f5f5f7;
         border-radius: 4px;
         padding: 1rem;
         margin: 0.5rem 0;
@@ -78,9 +128,79 @@ st.markdown("""
         font-size: 0.9rem;
         white-space: pre-wrap;
         position: relative;
+        background-color: rgba(245, 245, 247, 0.05);
+        color: #f5f5f7;
     }
+    
+    /* Sidebar */
     section[data-testid="stSidebar"] {
         width: 380px !important;
+        background-color: #080808;
+    }
+    
+    /* Sidebar text */
+    section[data-testid="stSidebar"] .stMarkdown,
+    section[data-testid="stSidebar"] h3,
+    section[data-testid="stSidebar"] p,
+    section[data-testid="stSidebar"] li,
+    section[data-testid="stSidebar"] strong {
+        color: #f5f5f7 !important;
+    }
+    
+    /* Dividers and borders */
+    hr {
+        border-color: rgba(245, 245, 247, 0.1);
+    }
+    
+    /* Main text color */
+    .stMarkdown, p, li {
+        font-family: 'Suisse Intl', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-weight: normal;
+        color: #f5f5f7;
+    }
+    
+    /* Headings - bold */
+    h1, h2, h3, h4, h5, h6, strong {
+        font-family: 'Suisse Intl', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-weight: bold;
+        color: #f5f5f7;
+    }
+    
+    /* Success and info boxes */
+    .success-box {
+        padding: 1rem;
+        border-radius: 0.5rem;
+        background-color: rgba(245, 245, 247, 0.05);
+        border: 1px solid rgba(245, 245, 247, 0.2);
+        color: #f5f5f7;
+        margin: 1rem 0;
+    }
+    .info-box {
+        padding: 1rem;
+        border-radius: 0.5rem;
+        background-color: rgba(245, 245, 247, 0.05);
+        border: 1px solid rgba(245, 245, 247, 0.2);
+        color: #f5f5f7;
+        margin: 1rem 0;
+    }
+    
+    /* Streamlit default elements */
+    .stSuccess {
+        background-color: rgba(245, 245, 247, 0.05);
+        border-color: rgba(245, 245, 247, 0.2);
+        color: #f5f5f7;
+    }
+    
+    .stInfo {
+        background-color: rgba(245, 245, 247, 0.05);
+        border-color: rgba(245, 245, 247, 0.2);
+        color: #f5f5f7;
+    }
+    
+    .stWarning {
+        background-color: rgba(245, 245, 247, 0.05);
+        border-color: rgba(245, 245, 247, 0.2);
+        color: #f5f5f7;
     }
 </style>
 """, unsafe_allow_html=True)
