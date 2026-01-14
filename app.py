@@ -65,10 +65,10 @@ if font_bold_b64:
     }}
     """
 
-st.markdown(f"""
+css_content = """
 <style>
     /* Font faces */
-    {font_face_css}
+    """ + font_face_css + """
     
     /* Main background - dark theme */
     .stApp {
@@ -203,7 +203,9 @@ st.markdown(f"""
         color: #f5f5f7;
     }
 </style>
-""", unsafe_allow_html=True)
+"""
+
+st.markdown(css_content, unsafe_allow_html=True)
 
 # Initialize session state
 if 'personas_generated' not in st.session_state:
