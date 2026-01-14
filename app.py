@@ -79,6 +79,9 @@ st.markdown("""
         white-space: pre-wrap;
         position: relative;
     }
+    section[data-testid="stSidebar"] {
+        width: 380px !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
