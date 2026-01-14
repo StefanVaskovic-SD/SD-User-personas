@@ -96,8 +96,7 @@ css_content = """
         font-family: 'Suisse Intl', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         font-size: 1.2rem;
         font-weight: normal;
-        color: #f5f5f7;
-        opacity: 0.7;
+        color: rgba(245, 245, 247, 0.7);
         text-align: center;
         margin-bottom: 2rem;
     }
@@ -114,12 +113,12 @@ css_content = """
         border: none;
     }
     .stButton>button:hover {
-        background-color: #ffffff;
+        background-color: rgba(245, 245, 247, 0.9);
     }
     
     /* Prompt box */
     .prompt-box {
-        border: 1px solid rgba(245, 245, 247, 0.2);
+        border: 1px solid rgba(245, 245, 247, 0.15);
         border-left: 4px solid #f5f5f7;
         border-radius: 4px;
         padding: 1rem;
@@ -128,14 +127,15 @@ css_content = """
         font-size: 0.9rem;
         white-space: pre-wrap;
         position: relative;
-        background-color: rgba(245, 245, 247, 0.05);
+        background-color: rgba(245, 245, 247, 0.03);
         color: #f5f5f7;
     }
     
-    /* Sidebar */
+    /* Sidebar - different shade to separate from main background */
     section[data-testid="stSidebar"] {
         width: 380px !important;
-        background-color: #080808;
+        background-color: #0f0f0f;
+        border-right: 1px solid rgba(245, 245, 247, 0.1);
     }
     
     /* Sidebar text */
@@ -171,7 +171,7 @@ css_content = """
         padding: 1rem;
         border-radius: 0.5rem;
         background-color: rgba(245, 245, 247, 0.05);
-        border: 1px solid rgba(245, 245, 247, 0.2);
+        border: 1px solid rgba(245, 245, 247, 0.15);
         color: #f5f5f7;
         margin: 1rem 0;
     }
@@ -179,7 +179,7 @@ css_content = """
         padding: 1rem;
         border-radius: 0.5rem;
         background-color: rgba(245, 245, 247, 0.05);
-        border: 1px solid rgba(245, 245, 247, 0.2);
+        border: 1px solid rgba(245, 245, 247, 0.15);
         color: #f5f5f7;
         margin: 1rem 0;
     }
@@ -187,19 +187,19 @@ css_content = """
     /* Streamlit default elements */
     .stSuccess {
         background-color: rgba(245, 245, 247, 0.05);
-        border-color: rgba(245, 245, 247, 0.2);
+        border-color: rgba(245, 245, 247, 0.15);
         color: #f5f5f7;
     }
     
     .stInfo {
         background-color: rgba(245, 245, 247, 0.05);
-        border-color: rgba(245, 245, 247, 0.2);
+        border-color: rgba(245, 245, 247, 0.15);
         color: #f5f5f7;
     }
     
     .stWarning {
         background-color: rgba(245, 245, 247, 0.05);
-        border-color: rgba(245, 245, 247, 0.2);
+        border-color: rgba(245, 245, 247, 0.15);
         color: #f5f5f7;
     }
 </style>
