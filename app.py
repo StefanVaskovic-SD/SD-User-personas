@@ -202,6 +202,12 @@ css_content = """
         border-color: rgba(245, 245, 247, 0.15);
         color: #f5f5f7;
     }
+    
+    /* Header - remove default background */
+    .stAppHeader {
+        background-color: #080808 !important;
+        border-bottom: 1px solid rgba(245, 245, 247, 0.1);
+    }
 </style>
 """
 
